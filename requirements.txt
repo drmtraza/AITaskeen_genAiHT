@@ -9,3 +9,5 @@ openai
 python-dotenv
 unstructured
 sentence-transformers
+python-docx
+
