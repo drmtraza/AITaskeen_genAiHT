@@ -1,5 +1,4 @@
 import streamlit as st
-import faiss
 import os
 from io import BytesIO
 from docx import Document
