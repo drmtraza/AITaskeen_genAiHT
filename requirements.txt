@@ -11,3 +11,5 @@ unstructured
 sentence-transformers
 python-docx
 PyPDF2
+pandas
+openpyxl
