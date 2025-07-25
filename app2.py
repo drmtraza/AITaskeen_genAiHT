@@ -1,7 +1,13 @@
 import streamlit as st
+import faiss
 import os
 from io import BytesIO
+from docx import Document
 import numpy as np
+from PyPDF2 import PdfReader
+from langchain.chains import RetrievalQA
+from langchain.text_splitter import CharacterTextSplitter
+from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_community.docstore.in_memory import InMemoryDocstore
