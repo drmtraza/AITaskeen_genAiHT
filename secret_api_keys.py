@@ -1,0 +1,2 @@
+huggingface_api_key='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'
+openai_api_key = "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"
