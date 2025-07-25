@@ -2,7 +2,6 @@ import streamlit as st
 import os
 from io import BytesIO
 import numpy as np
-from langchain.chains import RetrievalQA
 from langchain.text_splitter import CharacterTextSplitter
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
