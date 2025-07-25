@@ -1,7 +1,6 @@
 import streamlit as st
 import os
 from io import BytesIO
-from docx import Document
 import numpy as np
 from PyPDF2 import PdfReader
 from langchain.chains import RetrievalQA
