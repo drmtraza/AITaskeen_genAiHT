@@ -10,4 +10,4 @@ python-dotenv
 unstructured
 sentence-transformers
 python-docx
-
+PyPDF2
