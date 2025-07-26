@@ -13,7 +13,6 @@ from langchain_community.vectorstores import FAISS
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_community.docstore.in_memory import InMemoryDocstore
 from langchain_openai import ChatOpenAI
-from secret_api_keys import huggingface_api_key
 from secret_api_keys import openai_api_key
 
 os.environ["OPENAI_API_KEY"] = openai_api_key
