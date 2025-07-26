@@ -16,6 +16,11 @@ from langchain_community.docstore.in_memory import InMemoryDocstore
 from langchain_openai import ChatOpenAI
 from secret_api_keys import openai_api_key
 
+
+
+openai_api_key = st.secrets["openai_api_key"]
+huggingface_api_key = st.secrets["huggingface_api_key"]
+
 os.environ["OPENAI_API_KEY"] = openai_api_key
 
 
