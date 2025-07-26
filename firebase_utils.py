@@ -1,7 +1,9 @@
+# firebase_utils.py
+
 import streamlit as st
 import json
 import firebase_admin
-from firebase_admin import credentials, auth, firestore
+from firebase_admin import credentials, auth
 
 # Safely parse Firebase credentials from Streamlit secrets
 try:
