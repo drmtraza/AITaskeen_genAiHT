@@ -8,13 +8,11 @@ import pandas as pd
 from PyPDF2 import PdfReader
 from langchain.chains import RetrievalQA
 from langchain.text_splitter import CharacterTextSplitter
-from secret_api_keys import huggingface_api_key
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_community.docstore.in_memory import InMemoryDocstore
 from langchain_openai import ChatOpenAI
-from secret_api_keys import openai_api_key
 
 
 
