@@ -3,22 +3,22 @@
 import streamlit as st
 import json
 import firebase_admin
-from firebase_admin import credentials, auth, firestore  # add services you need
+from firebase_admin import credentials, auth, firestore
 
-# Get the secret string from Streamlit secrets
-firebase_creds_str = st.secrets["FIREBASE_CREDS"]
-
-# Convert string to dict
-firebase_creds = json.loads(firebase_creds_str)
+# Safely parse Firebase credentials from Streamlit secrets
+try:
+    firebase_creds_str = st.secrets["FIREBASE_CREDS"]
+    firebase_creds = json.loads(firebase_creds_str)
+except Exception as e:
+    st.error("Failed to load Firebase credentials. Make sure they are properly formatted in secrets.")
+    st.stop()
 
 # Initialize Firebase only once
 if not firebase_admin._apps:
     cred = credentials.Certificate(firebase_creds)
     firebase_admin.initialize_app(cred)
 
-# Now use firebase_admin functions
-
-
+# Auth functions
 def login():
     st.subheader("🔐 User Login")
     email = st.text_input("Email")
@@ -26,14 +26,15 @@ def login():
 
     if st.button("Login / Sign Up"):
         try:
-            # Try signing in
             user = auth.get_user_by_email(email)
             st.success(f"Welcome back, {email}!")
-        except:
-            # If not exist, create
-            user = auth.create_user(email=email, password=password)
-            st.success(f"Account created for {email}")
-
+        except firebase_admin.auth.UserNotFoundError:
+            try:
+                user = auth.create_user(email=email, password=password)
+                st.success(f"Account created for {email}")
+            except Exception as e:
+                st.error(f"Error creating account: {e}")
+                return
         st.session_state["user"] = email
 
 def is_logged_in():
