@@ -25,37 +25,15 @@ openai_api_key = st.secrets["openai_api_key"]
 huggingface_api_key = st.secrets["huggingface_api_key"]
 os.environ["OPENAI_API_KEY"] = openai_api_key
 
-# Step 1: Handle login
-simple_login()
+from firebase_utils import is_logged_in, login
 
-# Step 2: Check login success
-if not st.session_state.get("login_success"):
-    st.stop()  # Wait for login
+def main():
+    if is_logged_in():
+        st.success("✅ You're logged in as: " + st.session_state["user"])
+        st.write("Now you can use the app features below.")
+        # Add your main app UI components here
+    else:
+        login()
 
-# Step 3: Proceed with main app interface
-st.title("🔍 Ask Questions from Your Files")
-
-# Upload section
-pdfs = st.file_uploader("Upload PDF files", accept_multiple_files=True, type=["pdf"])
-docxs = st.file_uploader("Upload Word files", accept_multiple_files=True, type=["docx"])
-txts = st.file_uploader("Upload TXT files", accept_multiple_files=True, type=["txt"])
-csvs = st.file_uploader("Upload CSV files", accept_multiple_files=True, type=["csv"])
-excels = st.file_uploader("Upload Excel files", accept_multiple_files=True, type=["xls", "xlsx"])
-
-# Manual input
-links = st.text_area("Enter Links (comma separated)")
-text_input = st.text_area("Paste any text")
-
-if st.button("📦 Process All Inputs"):
-    with st.spinner("Processing..."):
-        data = process_all_inputs(links, text_input, pdfs, docxs, txts, csvs, excels)
-        save_vectorstore(data, st.session_state.user)
-        st.success("All data processed successfully!")
-
-# Question-answer section
-if st.session_state.get("user"):
-    vectorstore = load_vectorstore(st.session_state.user)
-    query = st.text_input("Ask a question")
-    if query and vectorstore:
-        answer = answer_question(vectorstore, query)
-        st.write(answer["result"])
+if __name__ == "__main__":
+    main()
