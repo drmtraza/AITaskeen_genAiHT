@@ -16,7 +16,11 @@ from langchain_openai import ChatOpenAI
 import json
 import uuid
 
+openai_api_key = st.secrets["openai_api_key"]
+huggingface_api_key = st.secrets["huggingface_api_key"]
+
 os.environ["OPENAI_API_KEY"] = openai_api_key
+
 
 # Simulated basic user database
 def get_users():
