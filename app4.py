@@ -148,51 +148,53 @@ def answer_question(vectorstore, query):
     return qa({"query": query})
 
 def main():
+    st.set_page_config(page_title="EDU-Genius AI – Smart OBE Assistant", layout="wide")
     st.title("EDU-Genius AI – Smart OBE Assistant")
 
-    # Login logic
-    user = login()
-    if not user:
-        st.stop()  # stops the app here until login is successful
+    if not is_logged_in():
+        login()
+        return
 
-    email = user["email"]
-    role = user["role"]
+    user_email = st.session_state.user
+    st.success(f"Logged in as {user_email} ({st.session_state.role})")
 
-    # Show login confirmation
-    st.success(f"Logged in as {email} ({role})")
-
-    # Load vectorstore if exists
+    # Load previously saved vectorstore for the user (if available)
     if "vectorstore" not in st.session_state:
-        loaded_vs = load_vectorstore(email)
-        if loaded_vs:
-            st.session_state.vectorstore = loaded_vs
-            st.info("Previous session vectorstore loaded.")
+        st.session_state.vectorstore = load_vectorstore(user_email)
 
-    # Inputs
+    # Inputs section
+    st.subheader("Upload and Provide Learning Content")
+
+    # URL input
     raw_links = st.text_area("Enter URLs (one per line)")
     links = [link.strip() for link in raw_links.strip().splitlines() if link.strip()]
 
-    text_input = st.text_area("Enter raw text")
+    # Raw text input
+    text_input = st.text_area("Enter Raw Text")
 
+    # File uploads
     pdfs = st.file_uploader("Upload PDF files", type=["pdf"], accept_multiple_files=True)
-    docxs = st.file_uploader("Upload DOCX files", type=["docx", "doc"], accept_multiple_files=True)
+    docxs = st.file_uploader("Upload DOCX files", type=["doc", "docx"], accept_multiple_files=True)
     txts = st.file_uploader("Upload TXT files", type=["txt"], accept_multiple_files=True)
     csvs = st.file_uploader("Upload CSV files", type=["csv"], accept_multiple_files=True)
     excels = st.file_uploader("Upload Excel files", type=["xls", "xlsx"], accept_multiple_files=True)
 
     if st.button("Process All Inputs"):
-        vectorstore = process_all_inputs(links, text_input, pdfs, docxs, txts, csvs, excels)
-        st.session_state.vectorstore = vectorstore
-        save_vectorstore(vectorstore, email)
-        st.success("Inputs processed and saved for your account.")
+        with st.spinner("Processing inputs..."):
+            vectorstore = process_all_inputs(links, text_input, pdfs, docxs, txts, csvs, excels)
+            st.session_state.vectorstore = vectorstore
+            save_vectorstore(user_email, vectorstore)
+        st.success("Inputs processed and saved successfully!")
 
-    if "vectorstore" in st.session_state:
-        query = st.text_input("Ask a question based on the uploaded documents")
+    # Query section
+    if st.session_state.vectorstore:
+        st.subheader("Ask Questions Based on the Uploaded Content")
+        query = st.text_input("Enter your question")
         if st.button("Submit Question"):
-            response = answer_question(st.session_state.vectorstore, query)
+            with st.spinner("Thinking..."):
+                response = answer_question(st.session_state.vectorstore, query)
             st.markdown(f"**Answer:** {response['result']}")
 
 
 if __name__ == "__main__":
     main()
-
