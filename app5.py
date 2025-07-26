@@ -29,15 +29,16 @@ except KeyError as e:
 
 # Load authentication configuration
 def load_credentials():
+    hasher = stauth.Hasher()  # Initialize Hasher without arguments
     credentials = {
         "usernames": {
             "user1": {
                 "name": "User One",
-                "password": stauth.Hasher(['password1']).generate()[0]
+                "password": hasher.hash("password1")  # Use hash method
             },
             "user2": {
                 "name": "User Two",
-                "password": stauth.Hasher(['password2']).generate()[0]
+                "password": hasher.hash("password2")  # Use hash method
             }
         }
     }
@@ -46,9 +47,9 @@ def load_credentials():
 # Initialize authenticator
 try:
     authenticator = stauth.Authenticate(
-        load_credentials(),
-        "rag_chatbot",
-        "auth",
+        credentials=load_credentials(),
+        cookie_name="rag_chatbot",
+        cookie_key="auth",
         cookie_expiry_days=30
     )
 except Exception as e:
@@ -208,7 +209,7 @@ def main():
     st.title("AI-Powered Academic Companion: Supporting PEC-Driven OBE Processes at DEE-LCWU")
 
     # Authentication
-    name, authentication_status, username = authenticator.login('Login', 'main')
+    name, authentication_status, username = authenticator.login(fields={'Form name': 'Login'}, location='main')
 
     if authentication_status:
         st.write(f"Welcome, {name}!")
