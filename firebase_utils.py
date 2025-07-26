@@ -1,18 +1,23 @@
-import firebase_admin
-from firebase_admin import credentials, auth
+# firebase_utils.py
+
 import streamlit as st
 import json
-import os
+import firebase_admin
+from firebase_admin import credentials, auth, firestore  # add services you need
 
+# Get the secret string from Streamlit secrets
+firebase_creds_str = st.secrets["FIREBASE_CREDS"]
 
+# Convert string to dict
+firebase_creds = json.loads(firebase_creds_str)
+
+# Initialize Firebase only once
 if not firebase_admin._apps:
-    firebase_creds_str = st.secrets["FIREBASE_CREDS"]  # ← string
-    firebase_creds = json.loads(firebase_creds_str)     # ← convert to dict
-    cred = credentials.Certificate(firebase_creds)      # ← now valid
+    cred = credentials.Certificate(firebase_creds)
     firebase_admin.initialize_app(cred)
-if not firebase_admin._apps:
-    cred = credentials.Certificate(cred_path)
-    firebase_admin.initialize_app(cred)
+
+# Now use firebase_admin functions
+
 
 def login():
     st.subheader("🔐 User Login")
