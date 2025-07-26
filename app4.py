@@ -14,25 +14,16 @@ from langchain_community.document_loaders import WebBaseLoader
 from langchain_community.docstore.in_memory import InMemoryDocstore
 from langchain_openai import ChatOpenAI
 import json
-import streamlit as st
-from simple_auth import login as simple_login
-from firebase_utils import is_logged_in as firebase_logged_in  # Optional if you use Firebase login
-from processing import process_all_inputs, answer_question
-from vectorstore_utils import save_vectorstore, load_vectorstore
 
+from firebase_utils import is_logged_in, login
 
+# Load API keys
 openai_api_key = st.secrets["openai_api_key"]
 huggingface_api_key = st.secrets["huggingface_api_key"]
 os.environ["OPENAI_API_KEY"] = openai_api_key
 
-from firebase_utils import is_logged_in, login
-
-def main():
-    if is_logged_in():
-        st.success("✅ You're logged in as: " + st.session_state["user"])
-        st.write("Now you can use the app features below.")
-        # Add your main app UI components here
-        def load_documents_from_links(links):
+# --- Document Loaders ---
+def load_documents_from_links(links):
     docs = []
     for url in links:
         if url.strip():
@@ -78,25 +69,20 @@ def load_documents_from_csv_excel(csvs, excels):
         text += df.to_string(index=False) + "\n"
     return text
 
-
+# --- Vector Processing ---
 def process_all_inputs(links, text_input, pdfs, docxs, txts, csvs, excels):
     combined_text = ""
 
     if links:
         combined_text += load_documents_from_links(links) + "\n"
-
     if text_input:
         combined_text += text_input + "\n"
-
     if pdfs:
         combined_text += load_documents_from_pdfs(pdfs) + "\n"
-
     if docxs:
         combined_text += load_documents_from_docx(docxs) + "\n"
-
     if txts:
         combined_text += load_documents_from_txt(txts) + "\n"
-
     if csvs or excels:
         combined_text += load_documents_from_csv_excel(csvs, excels) + "\n"
 
@@ -122,17 +108,18 @@ def process_all_inputs(links, text_input, pdfs, docxs, txts, csvs, excels):
     vector_store.add_texts(texts)
     return vector_store
 
-
+# --- Answering ---
 def answer_question(vectorstore, query):
-    llm = ChatOpenAI(
-        model_name="gpt-3.5-turbo",
-        temperature=0.6
-    )
+    llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0.6)
     qa = RetrievalQA.from_chain_type(llm=llm, retriever=vectorstore.as_retriever())
     return qa({"query": query})
 
-
+# --- Main Streamlit App ---
 def main():
+    if not is_logged_in():
+        login()
+        return
+
     st.title("AI-Powered Academic Companion: Supporting PEC-Driven OBE Processes at DEE-LCWU")
 
     st.markdown("### Enter URLs (one per line)")
@@ -159,8 +146,6 @@ def main():
         if st.button("Submit Question"):
             response = answer_question(st.session_state["vectorstore"], query)
             st.markdown(f"**Answer:** {response['result']}")
-    else:
-        login()
 
 if __name__ == "__main__":
     main()
