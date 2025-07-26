@@ -17,7 +17,6 @@ from secret_api_keys import huggingface_api_key
 from secret_api_keys import openai_api_key
 
 os.environ["OPENAI_API_KEY"] = openai_api_key
-# os.environ["HUGGINGFACEHUB_API_TOKEN"] = huggingface_api_key
 
 
 def load_documents_from_links(links):
