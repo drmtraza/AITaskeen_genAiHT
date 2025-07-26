@@ -4,6 +4,11 @@ import streamlit as st
 import json
 import os
 
+
+if not firebase_admin._apps:
+    firebase_creds = json.loads(st.secrets["FIREBASE_CREDS"])
+    cred = credentials.Certificate(firebase_creds)
+    firebase_admin.initialize_app(cred)
 # Load Firebase credentials
 cred_path = "firebase/firebase_key.json"
 if not firebase_admin._apps:
