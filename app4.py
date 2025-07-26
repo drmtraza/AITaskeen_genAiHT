@@ -14,187 +14,82 @@ from langchain_community.document_loaders import WebBaseLoader
 from langchain_community.docstore.in_memory import InMemoryDocstore
 from langchain_openai import ChatOpenAI
 import json
-import uuid
-import streamlit as st
 from simple_auth import login, is_logged_in
 from vectorstore_utils import save_vectorstore, load_vectorstore
-from processing import process_all_inputs, answer_question  # Assuming you have this logic modularized
+from processing import process_all_inputs, answer_question
 
 
 openai_api_key = st.secrets["openai_api_key"]
 huggingface_api_key = st.secrets["huggingface_api_key"]
-
 os.environ["OPENAI_API_KEY"] = openai_api_key
 
 
-# Simulated basic user database
-def get_users():
-    return {
-        "admin@example.com": {"password": "admin123", "role": "admin"},
-        "faculty@example.com": {"password": "faculty123", "role": "faculty"},
-    }
-
-# Load session data
-SESSION_DB = "session_data.json"
-
-def load_session(user_id):
-    if os.path.exists(SESSION_DB):
-        with open(SESSION_DB, "r") as f:
-            all_sessions = json.load(f)
-        return all_sessions.get(user_id, {})
-    return {}
-
-def save_session(user_id, session_data):
-    if os.path.exists(SESSION_DB):
-        with open(SESSION_DB, "r") as f:
-            all_sessions = json.load(f)
-    else:
-        all_sessions = {}
-    all_sessions[user_id] = session_data
-    with open(SESSION_DB, "w") as f:
-        json.dump(all_sessions, f)
-
-def load_documents_from_links(links):
-    docs = []
-    for url in links:
-        if url.strip():
-            loader = WebBaseLoader(url)
-            docs.extend(loader.load())
-    return "\n".join([doc.page_content for doc in docs])
-
-def load_documents_from_pdfs(uploaded_files):
-    text = ""
-    for file in uploaded_files:
-        pdf_reader = PdfReader(file)
-        for page in pdf_reader.pages:
-            page_text = page.extract_text()
-            if page_text:
-                text += page_text
-    return text
-
-def load_documents_from_docx(uploaded_files):
-    text = ""
-    for file in uploaded_files:
-        doc = Document(file)
-        text += "\n".join([para.text for para in doc.paragraphs])
-    return text
-
-def load_documents_from_txt(uploaded_files):
-    text = ""
-    for file in uploaded_files:
-        content = file.read().decode("utf-8")
-        text += content
-    return text
-
-def load_documents_from_csv_excel(csvs, excels):
-    text = ""
-    for file in csvs:
-        df = pd.read_csv(file)
-        text += df.to_string(index=False) + "\n"
-    for file in excels:
-        df = pd.read_excel(file)
-        text += df.to_string(index=False) + "\n"
-    return text
-
-def process_all_inputs(links, text_input, pdfs, docxs, txts, csvs, excels):
-    combined_text = ""
-
-    if links:
-        combined_text += load_documents_from_links(links) + "\n"
-
-    if text_input:
-        combined_text += text_input + "\n"
-
-    if pdfs:
-        combined_text += load_documents_from_pdfs(pdfs) + "\n"
-
-    if docxs:
-        combined_text += load_documents_from_docx(docxs) + "\n"
-
-    if txts:
-        combined_text += load_documents_from_txt(txts) + "\n"
-
-    if csvs or excels:
-        combined_text += load_documents_from_csv_excel(csvs, excels) + "\n"
-
-    text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
-    texts = text_splitter.split_text(combined_text)
-
-    model_name = "sentence-transformers/all-mpnet-base-v2"
-    hf_embeddings = HuggingFaceEmbeddings(
-        model_name=model_name,
-        model_kwargs={"device": "cpu"},
-        encode_kwargs={"normalize_embeddings": False}
-    )
-
-    sample_embedding = np.array(hf_embeddings.embed_query("sample text"))
-    index = faiss.IndexFlatL2(sample_embedding.shape[0])
-
-    vector_store = FAISS(
-        embedding_function=hf_embeddings.embed_query,
-        index=index,
-        docstore=InMemoryDocstore(),
-        index_to_docstore_id={}
-    )
-    vector_store.add_texts(texts)
-    return vector_store
-
-def answer_question(vectorstore, query):
-    llm = ChatOpenAI(
-        model_name="gpt-3.5-turbo",
-        temperature=0.6
-    )
-    qa = RetrievalQA.from_chain_type(llm=llm, retriever=vectorstore.as_retriever())
-    return qa({"query": query})
-
+# ----------------------------- MAIN APP FUNCTION -----------------------------
 def main():
     st.set_page_config(page_title="EDU-Genius AI – Smart OBE Assistant", layout="wide")
-    st.title("EDU-Genius AI – Smart OBE Assistant")
+    st.title("🎓 EDU-Genius AI – Smart OBE Assistant")
 
+    # Step 1: Check Login
     if not is_logged_in():
         login()
         return
 
+    # Step 2: Show Welcome
     user_email = st.session_state.user
-    st.success(f"Logged in as {user_email} ({st.session_state.role})")
+    st.success(f"✅ Logged in as: {user_email} ({st.session_state.role})")
 
-    # Load previously saved vectorstore for the user (if available)
+    # Step 3: Load vectorstore for this user
     if "vectorstore" not in st.session_state:
         st.session_state.vectorstore = load_vectorstore(user_email)
 
-    # Inputs section
-    st.subheader("Upload and Provide Learning Content")
+    # Step 4: Input Mode Selection
+    st.subheader("📥 Upload & Provide Learning Content")
+    input_mode = st.selectbox("Choose input mode:", ["Combined Upload", "File", "Text", "URL"])
 
-    # URL input
-    raw_links = st.text_area("Enter URLs (one per line)")
-    links = [link.strip() for link in raw_links.strip().splitlines() if link.strip()]
+    # Initialize inputs
+    raw_links, text_input, pdfs, docxs, txts, csvs, excels = [], "", [], [], [], [], []
 
-    # Raw text input
-    text_input = st.text_area("Enter Raw Text")
+    if input_mode == "Combined Upload":
+        raw_links = st.text_area("Enter URLs (one per line)")
+        text_input = st.text_area("Enter Raw Text")
+        pdfs = st.file_uploader("Upload PDF files", type=["pdf"], accept_multiple_files=True)
+        docxs = st.file_uploader("Upload DOCX files", type=["doc", "docx"], accept_multiple_files=True)
+        txts = st.file_uploader("Upload TXT files", type=["txt"], accept_multiple_files=True)
+        csvs = st.file_uploader("Upload CSV files", type=["csv"], accept_multiple_files=True)
+        excels = st.file_uploader("Upload Excel files", type=["xls", "xlsx"], accept_multiple_files=True)
 
-    # File uploads
-    pdfs = st.file_uploader("Upload PDF files", type=["pdf"], accept_multiple_files=True)
-    docxs = st.file_uploader("Upload DOCX files", type=["doc", "docx"], accept_multiple_files=True)
-    txts = st.file_uploader("Upload TXT files", type=["txt"], accept_multiple_files=True)
-    csvs = st.file_uploader("Upload CSV files", type=["csv"], accept_multiple_files=True)
-    excels = st.file_uploader("Upload Excel files", type=["xls", "xlsx"], accept_multiple_files=True)
+    elif input_mode == "File":
+        pdfs = st.file_uploader("Upload PDF files", type=["pdf"], accept_multiple_files=True)
+        docxs = st.file_uploader("Upload DOCX files", type=["doc", "docx"], accept_multiple_files=True)
+        txts = st.file_uploader("Upload TXT files", type=["txt"], accept_multiple_files=True)
+        csvs = st.file_uploader("Upload CSV files", type=["csv"], accept_multiple_files=True)
+        excels = st.file_uploader("Upload Excel files", type=["xls", "xlsx"], accept_multiple_files=True)
 
-    if st.button("Process All Inputs"):
-        with st.spinner("Processing inputs..."):
+    elif input_mode == "Text":
+        text_input = st.text_area("Enter Raw Text")
+
+    elif input_mode == "URL":
+        raw_links = st.text_area("Enter URLs (one per line)")
+
+    # Step 5: Process button
+    if st.button("🚀 Process Inputs"):
+        with st.spinner("Processing..."):
+            links = [link.strip() for link in raw_links.strip().splitlines() if link.strip()]
             vectorstore = process_all_inputs(links, text_input, pdfs, docxs, txts, csvs, excels)
             st.session_state.vectorstore = vectorstore
             save_vectorstore(user_email, vectorstore)
-        st.success("Inputs processed and saved successfully!")
+        st.success("✅ Inputs processed and saved successfully!")
 
-    # Query section
+    # Step 6: Question Answering
     if st.session_state.vectorstore:
-        st.subheader("Ask Questions Based on the Uploaded Content")
-        query = st.text_input("Enter your question")
-        if st.button("Submit Question"):
+        st.subheader("❓ Ask Questions About Your Content")
+        query = st.text_input("Enter your question here")
+        if st.button("💬 Get Answer"):
             with st.spinner("Thinking..."):
                 response = answer_question(st.session_state.vectorstore, query)
-            st.markdown(f"**Answer:** {response['result']}")
+            st.markdown(f"**🧠 Answer:** {response['result']}")
 
 
+# ----------------------------- RUN APP -----------------------------
 if __name__ == "__main__":
     main()
