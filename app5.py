@@ -209,7 +209,11 @@ def main():
     st.title("AI-Powered Academic Companion: Supporting PEC-Driven OBE Processes at DEE-LCWU")
 
     # Authentication
-    name, authentication_status, username = authenticator.login(fields={'Form name': 'Login'}, location='main')
+    try:
+        name, authentication_status, username = authenticator.login(form_name="Login")
+    except Exception as e:
+        st.error(f"Authentication error: {str(e)}")
+        st.stop()
 
     if authentication_status:
         st.write(f"Welcome, {name}!")
