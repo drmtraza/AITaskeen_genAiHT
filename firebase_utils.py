@@ -7,8 +7,8 @@ from firebase_admin import credentials, auth, firestore
 
 # Safely parse Firebase credentials from Streamlit secrets
 try:
-    firebase_creds_str = st.secrets["FIREBASE_CREDS"]
-    firebase_creds = json.loads(firebase_creds_str)
+firebase_creds_str = st.secrets["FIREBASE_CREDS"]["value"]
+firebase_creds = json.loads(firebase_creds_str)
 except Exception as e:
     st.error("Failed to load Firebase credentials. Make sure they are properly formatted in secrets.")
     st.stop()
