@@ -6,11 +6,10 @@ import os
 
 
 if not firebase_admin._apps:
-    firebase_creds = json.loads(st.secrets["FIREBASE_CREDS"])
-    cred = credentials.Certificate(firebase_creds)
+    firebase_creds_str = st.secrets["FIREBASE_CREDS"]  # ← string
+    firebase_creds = json.loads(firebase_creds_str)     # ← convert to dict
+    cred = credentials.Certificate(firebase_creds)      # ← now valid
     firebase_admin.initialize_app(cred)
-# Load Firebase credentials
-cred_path = "firebase/firebase_key.json"
 if not firebase_admin._apps:
     cred = credentials.Certificate(cred_path)
     firebase_admin.initialize_app(cred)
