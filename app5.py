@@ -18,10 +18,14 @@ from langchain_openai import ChatOpenAI
 import pickle
 import shutil
 
-# Load secrets
-openai_api_key = st.secrets["openai_api_key"]
-huggingface_api_key = st.secrets["huggingface_api_key"]
-os.environ["OPENAI_API_KEY"] = openai_api_key
+# Load secrets with error handling
+try:
+    openai_api_key = st.secrets["openai_api_key"]
+    huggingface_api_key = st.secrets["huggingface_api_key"]
+    os.environ["OPENAI_API_KEY"] = openai_api_key
+except KeyError as e:
+    st.error("Missing API key in secrets. Please configure secrets in Streamlit Cloud.")
+    st.stop()
 
 # Load authentication configuration
 def load_credentials():
@@ -40,12 +44,16 @@ def load_credentials():
     return credentials
 
 # Initialize authenticator
-authenticator = stauth.Authenticate(
-    load_credentials(),
-    "rag_chatbot",
-    "auth",
-    cookie_expiry_days=30
-)
+try:
+    authenticator = stauth.Authenticate(
+        load_credentials(),
+        "rag_chatbot",
+        "auth",
+        cookie_expiry_days=30
+    )
+except Exception as e:
+    st.error(f"Error initializing authenticator: {str(e)}")
+    st.stop()
 
 # Directory for user data
 USER_DATA_DIR = "user_data"
@@ -56,108 +64,145 @@ def get_user_directory(username):
     return user_dir
 
 def save_vectorstore(vectorstore, username):
-    user_dir = get_user_directory(username)
-    vectorstore_path = os.path.join(user_dir, "vectorstore.faiss")
-    vectorstore.save_local(vectorstore_path)
+    try:
+        user_dir = get_user_directory(username)
+        vectorstore_path = os.path.join(user_dir, "vectorstore.faiss")
+        vectorstore.save_local(vectorstore_path)
+    except Exception as e:
+        st.error(f"Error saving vectorstore: {str(e)}")
 
 def load_vectorstore(username):
-    user_dir = get_user_directory(username)
-    vectorstore_path = os.path.join(user_dir, "vectorstore.faiss")
-    if os.path.exists(vectorstore_path):
+    try:
+        user_dir = get_user_directory(username)
+        vectorstore_path = os.path.join(user_dir, "vectorstore.faiss")
+        if os.path.exists(vectorstore_path):
+            model_name = "sentence-transformers/all-mpnet-base-v2"
+            hf_embeddings = HuggingFaceEmbeddings(
+                model_name=model_name,
+                model_kwargs={"device": "cpu"},
+                encode_kwargs={"normalize_embeddings": False}
+            )
+            return FAISS.load_local(vectorstore_path, embeddings=hf_embeddings, allow_dangerous_deserialization=True)
+        return None
+    except Exception as e:
+        st.error(f"Error loading vectorstore: {str(e)}")
+        return None
+
+def load_documents_from_links(links):
+    docs = []
+    for url in links:
+        if url.strip():
+            try:
+                loader = WebBaseLoader(url)
+                docs.extend(loader.load())
+            except Exception as e:
+                st.warning(f"Failed to load URL {url}: {str(e)}")
+    return "\n".join([doc.page_content for doc in docs])
+
+def load_documents_from_pdfs(uploaded_files):
+    text = ""
+    for file in uploaded_files:
+        try:
+            pdf_reader = PdfReader(file)
+            for page in pdf_reader.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    text += page_text
+        except Exception as e:
+            st.warning(f"Error processing PDF {file.name}: {str(e)}")
+    return text
+
+def load_documents_from_docx(uploaded_files):
+    text = ""
+    for file in uploaded_files:
+        try:
+            doc = Document(file)
+            text += "\n".join([para.text for para in doc.paragraphs])
+        except Exception as e:
+            st.warning(f"Error processing DOCX {file.name}: {str(e)}")
+    return text
+
+def load_documents_from_txt(uploaded_files):
+    text = ""
+    for file in uploaded_files:
+        try:
+            content = file.read().decode("utf-8")
+            text += content
+        except Exception as e:
+            st.warning(f"Error processing TXT {file.name}: {str(e)}")
+    return text
+
+def load_documents_from_csv_excel(csvs, excels):
+    text = ""
+    for file in csvs:
+        try:
+            df = pd.read_csv(file)
+            text += df.to_string(index=False) + "\n"
+        except Exception as e:
+            st.warning(f"Error processing CSV {file.name}: {str(e)}")
+    for file in excels:
+        try:
+            df = pd.read_excel(file)
+            text += df.to_string(index=False) + "\n"
+        except Exception as e:
+            st.warning(f"Error processing Excel {file.name}: {str(e)}")
+    return text
+
+def process_all_inputs(links, text_input, pdfs, docxs, txts, csvs, excels):
+    try:
+        combined_text = ""
+        if links:
+            combined_text += load_documents_from_links(links) + "\n"
+        if text_input:
+            combined_text += text_input + "\n"
+        if pdfs:
+            combined_text += load_documents_from_pdfs(pdfs) + "\n"
+        if docxs:
+            combined_text += load_documents_from_docx(docxs) + "\n"
+        if txts:
+            combined_text += load_documents_from_txt(txts) + "\n"
+        if csvs or excels:
+            combined_text += load_documents_from_csv_excel(csvs, excels) + "\n"
+
+        if not combined_text.strip():
+            st.error("No valid input data provided.")
+            return None
+
+        text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
+        texts = text_splitter.split_text(combined_text)
+
         model_name = "sentence-transformers/all-mpnet-base-v2"
         hf_embeddings = HuggingFaceEmbeddings(
             model_name=model_name,
             model_kwargs={"device": "cpu"},
             encode_kwargs={"normalize_embeddings": False}
         )
-        return FAISS.load_local(vectorstore_path, embeddings=hf_embeddings, allow_dangerous_deserialization=True)
-    return None
 
-def load_documents_from_links(links):
-    docs = []
-    for url in links:
-        if url.strip():
-            loader = WebBaseLoader(url)
-            docs.extend(loader.load())
-    return "\n".join([doc.page_content for doc in docs])
-
-def load_documents_from_pdfs(uploaded_files):
-    text = ""
-    for file in uploaded_files:
-        pdf_reader = PdfReader(file)
-        for page in pdf_reader.pages:
-            page_text = page.extract_text()
-            if page_text:
-                text += page_text
-    return text
-
-def load_documents_from_docx(uploaded_files):
-    text = ""
-    for file in uploaded_files:
-        doc = Document(file)
-        text += "\n".join([para.text for para in doc.paragraphs])
-    return text
-
-def load_documents_from_txt(uploaded_files):
-    text = ""
-    for file in uploaded_files:
-        content = file.read().decode("utf-8")
-        text += content
-    return text
-
-def load_documents_from_csv_excel(csvs, excels):
-    text = ""
-    for file in csvs:
-        df = pd.read_csv(file)
-        text += df.to_string(index=False) + "\n"
-    for file in excels:
-        df = pd.read_excel(file)
-        text += df.to_string(index=False) + "\n"
-    return text
-
-def process_all_inputs(links, text_input, pdfs, docxs, txts, csvs, excels):
-    combined_text = ""
-    if links:
-        combined_text += load_documents_from_links(links) + "\n"
-    if text_input:
-        combined_text += text_input + "\n"
-    if pdfs:
-        combined_text += load_documents_from_pdfs(pdfs) + "\n"
-    if docxs:
-        combined_text += load_documents_from_docx(docxs) + "\n"
-    if txts:
-        combined_text += load_documents_from_txt(txts) + "\n"
-    if csvs or excels:
-        combined_text += load_documents_from_csv_excel(csvs, excels) + "\n"
-
-    text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
-    texts = text_splitter.split_text(combined_text)
-
-    model_name = "sentence-transformers/all-mpnet-base-v2"
-    hf_embeddings = HuggingFaceEmbeddings(
-        model_name=model_name,
-        model_kwargs={"device": "cpu"},
-        encode_kwargs={"normalize_embeddings": False}
-    )
-
-    sample_embedding = np.array(hf_embeddings.embed_query("sample text"))
-    index = faiss.IndexFlatL2(sample_embedding.shape[0])
-    vector_store = FAISS(
-        embedding_function=hf_embeddings.embed_query,
-        index=index,
-        docstore=InMemoryDocstore(),
-        index_to_docstore_id={}
-    )
-    vector_store.add_texts(texts)
-    return vector_store
+        sample_embedding = np.array(hf_embeddings.embed_query("sample text"))
+        index = faiss.IndexFlatL2(sample_embedding.shape[0])
+        vector_store = FAISS(
+            embedding_function=hf_embeddings.embed_query,
+            index=index,
+            docstore=InMemoryDocstore(),
+            index_to_docstore_id={}
+        )
+        vector_store.add_texts(texts)
+        return vector_store
+    except Exception as e:
+        st.error(f"Error processing inputs: {str(e)}")
+        return None
 
 def answer_question(vectorstore, query):
-    llm = ChatOpenAI(
-        model_name="gpt-3.5-turbo",
-        temperature=0.6
-    )
-    qa = RetrievalQA.from_chain_type(llm=llm, retriever=vectorstore.as_retriever())
-    return qa({"query": query})
+    try:
+        llm = ChatOpenAI(
+            model_name="gpt-3.5-turbo",
+            temperature=0.6
+        )
+        qa = RetrievalQA.from_chain_type(llm=llm, retriever=vectorstore.as_retriever())
+        return qa({"query": query})
+    except Exception as e:
+        st.error(f"Error answering question: {str(e)}")
+        return None
 
 def main():
     st.title("AI-Powered Academic Companion: Supporting PEC-Driven OBE Processes at DEE-LCWU")
@@ -189,16 +234,23 @@ def main():
 
         if st.button("Process All Inputs"):
             vectorstore = process_all_inputs(links, text_input, pdfs, docxs, txts, csvs, excels)
-            st.session_state["vectorstore"] = vectorstore
-            save_vectorstore(vectorstore, username)
-            st.success("All inputs processed and vectorstore saved!")
+            if vectorstore:
+                st.session_state["vectorstore"] = vectorstore
+                save_vectorstore(vectorstore, username)
+                st.success("All inputs processed and vectorstore saved!")
+            else:
+                st.error("Failed to process inputs. Check logs for details.")
 
         if "vectorstore" in st.session_state and st.session_state["vectorstore"] is not None:
             query = st.text_input("Ask a question based on the uploaded documents")
-            if st.button("Submit Question"):
+            if st.button("Submit Question") and query.strip():
                 response = answer_question(st.session_state["vectorstore"], query)
-                st.markdown(f"**Answer:** {response['result']}")
-
+                if response:
+                    st.markdown(f"**Answer:** {response['result']}")
+                else:
+                    st.error("Failed to generate an answer. Check logs for details.")
+            elif not query.strip():
+                st.warning("Please enter a question.")
     elif authentication_status is False:
         st.error("Username/password is incorrect")
     elif authentication_status is None:
