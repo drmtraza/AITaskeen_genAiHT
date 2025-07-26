@@ -15,6 +15,11 @@ from langchain_community.docstore.in_memory import InMemoryDocstore
 from langchain_openai import ChatOpenAI
 import json
 import uuid
+import streamlit as st
+from simple_auth import login, is_logged_in
+from vectorstore_utils import save_vectorstore, load_vectorstore
+from processing import process_all_inputs, answer_question  # Assuming you have this logic modularized
+
 
 openai_api_key = st.secrets["openai_api_key"]
 huggingface_api_key = st.secrets["huggingface_api_key"]
@@ -145,31 +150,29 @@ def answer_question(vectorstore, query):
 def main():
     st.title("EDU-Genius AI – Smart OBE Assistant")
 
-    if "user" not in st.session_state:
-        with st.form("Login"):
-            st.subheader("Login")
-            email = st.text_input("Email")
-            password = st.text_input("Password", type="password")
-            submit = st.form_submit_button("Login")
-            if submit:
-                users = get_users()
-                user = users.get(email)
-                if user and user["password"] == password:
-                    st.session_state.user = email
-                    st.session_state.role = user["role"]
-                    st.session_state.data = load_session(email)
-                    st.success(f"Welcome, {email} ({user['role']})")
-                    st.experimental_rerun()
-                else:
-                    st.error("Invalid credentials")
-        return
+    # Login logic
+    user = login()
+    if not user:
+        st.stop()  # stops the app here until login is successful
 
-    st.success(f"Logged in as {st.session_state.user} ({st.session_state.role})")
-    
-    raw_links = st.text_area("Enter URLs (one per line)", value=st.session_state.data.get("links", ""))
+    email = user["email"]
+    role = user["role"]
+
+    # Show login confirmation
+    st.success(f"Logged in as {email} ({role})")
+
+    # Load vectorstore if exists
+    if "vectorstore" not in st.session_state:
+        loaded_vs = load_vectorstore(email)
+        if loaded_vs:
+            st.session_state.vectorstore = loaded_vs
+            st.info("Previous session vectorstore loaded.")
+
+    # Inputs
+    raw_links = st.text_area("Enter URLs (one per line)")
     links = [link.strip() for link in raw_links.strip().splitlines() if link.strip()]
-    
-    text_input = st.text_area("Enter raw text", value=st.session_state.data.get("text_input", ""))
+
+    text_input = st.text_area("Enter raw text")
 
     pdfs = st.file_uploader("Upload PDF files", type=["pdf"], accept_multiple_files=True)
     docxs = st.file_uploader("Upload DOCX files", type=["docx", "doc"], accept_multiple_files=True)
@@ -180,9 +183,8 @@ def main():
     if st.button("Process All Inputs"):
         vectorstore = process_all_inputs(links, text_input, pdfs, docxs, txts, csvs, excels)
         st.session_state.vectorstore = vectorstore
-        st.session_state.data = {"links": raw_links, "text_input": text_input}
-        save_session(st.session_state.user, st.session_state.data)
-        st.success("Inputs processed and saved!")
+        save_vectorstore(vectorstore, email)
+        st.success("Inputs processed and saved for your account.")
 
     if "vectorstore" in st.session_state:
         query = st.text_input("Ask a question based on the uploaded documents")
@@ -190,5 +192,7 @@ def main():
             response = answer_question(st.session_state.vectorstore, query)
             st.markdown(f"**Answer:** {response['result']}")
 
+
 if __name__ == "__main__":
     main()
+
