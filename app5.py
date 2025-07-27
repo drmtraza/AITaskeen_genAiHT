@@ -24,22 +24,22 @@ try:
     huggingface_api_key = st.secrets["huggingface_api_key"]
     os.environ["OPENAI_API_KEY"] = openai_api_key
 except KeyError as e:
-    st.error("Missing API key in secrets. Please configure secrets in Streamlit Cloud.")
+    st.error(f"Missing API key in secrets: {str(e)}. Please configure secrets in Streamlit Cloud.")
     st.stop()
 
 # Load authentication configuration
 def load_credentials():
     try:
-        hasher = stauth.Hasher()  # Initialize Hasher without arguments
+        hasher = stauth.Hasher()
         credentials = {
             "usernames": {
                 "user1": {
                     "name": "User One",
-                    "password": hasher.hash("password1")  # Use hash method
+                    "password": hasher.hash("password1")
                 },
                 "user2": {
                     "name": "User Two",
-                    "password": hasher.hash("password2")  # Use hash method
+                    "password": hasher.hash("password2")
                 }
             }
         }
@@ -60,6 +60,8 @@ try:
         cookie_key="auth",
         cookie_expiry_days=30
     )
+    # Debug: Display credentials to verify structure
+    st.write("Debug: Credentials loaded successfully.")
 except Exception as e:
     st.error(f"Error initializing authenticator: {str(e)}")
     st.stop()
@@ -218,22 +220,32 @@ def main():
 
     # Authentication
     try:
+        if "authentication_status" not in st.session_state:
+            st.session_state["authentication_status"] = None
+            st.session_state["name"] = None
+            st.session_state["username"] = None
+
+        # Render login form explicitly
         login_result = authenticator.login()
         if login_result is None:
-            st.error("Authentication failed: Login method returned None. Please check your credentials and try again.")
+            st.error("Authentication failed: Login form did not return valid data. Please check your credentials (e.g., user1:password1 or user2:password2) and try again.")
             st.stop()
+
         name, authentication_status, username = login_result
+        st.session_state["name"] = name
+        st.session_state["authentication_status"] = authentication_status
+        st.session_state["username"] = username
     except Exception as e:
-        st.error(f"Authentication error: {str(e)}")
+        st.error(f"Authentication error: {str(e)}. Please ensure credentials are correct (e.g., user1:password1 or user2:password2).")
         st.stop()
 
-    if authentication_status:
-        st.write(f"Welcome, {name}!")
+    if st.session_state["authentication_status"]:
+        st.write(f"Welcome, {st.session_state['name']}!")
         authenticator.logout('Logout', 'sidebar')
 
         # Load user-specific vectorstore if it exists
         if "vectorstore" not in st.session_state:
-            st.session_state["vectorstore"] = load_vectorstore(username)
+            st.session_state["vectorstore"] = load_vectorstore(st.session_state["username"])
 
         st.markdown("### Enter URLs (one per line)")
         raw_links = st.text_area("Links", placeholder="https://example.com")
@@ -253,7 +265,7 @@ def main():
             vectorstore = process_all_inputs(links, text_input, pdfs, docxs, txts, csvs, excels)
             if vectorstore:
                 st.session_state["vectorstore"] = vectorstore
-                save_vectorstore(vectorstore, username)
+                save_vectorstore(vectorstore, st.session_state["username"])
                 st.success("All inputs processed and vectorstore saved!")
             else:
                 st.error("Failed to process inputs. Check logs for details.")
@@ -268,10 +280,10 @@ def main():
                     st.error("Failed to generate an answer. Check logs for details.")
             elif not query.strip():
                 st.warning("Please enter a question.")
-    elif authentication_status is False:
-        st.error("Username/password is incorrect")
-    elif authentication_status is None:
-        st.warning("Please enter your username and password")
+    elif st.session_state["authentication_status"] is False:
+        st.error("Username/password is incorrect. Try user1:password1 or user2:password2.")
+    elif st.session_state["authentication_status"] is None:
+        st.warning("Please enter your username and password.")
 
 if __name__ == "__main__":
     main()
