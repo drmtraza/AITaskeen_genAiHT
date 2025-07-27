@@ -234,7 +234,7 @@ def answer_question(vectorstore, query):
 def main():
     st.markdown(
     """
-    <h1 style='font-size: 40px; text-align: center; color: #00FF00;'>
+    <h1 style='font-size: 40px; text-align: center; color: #006400;'>
         UniverSync AI
     </h1>
     """,
@@ -242,7 +242,7 @@ def main():
     )
     st.markdown(
     """
-    <h1 style='font-size: 30px; text-align: center; color: #FF5733;'>
+    <h1 style='font-size: 30px; text-align: center; color: #0000FF;'>
         A Unified Academic Automation Platform for OBE, PEC Accreditation & Multi-Faculty University Transformation at LCWU
     </h1>
     """,
