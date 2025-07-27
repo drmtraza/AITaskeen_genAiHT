@@ -40,6 +40,10 @@ def load_credentials():
                 "user2": {
                     "name": "User Two",
                     "password": bcrypt.hashpw("password2".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+                },
+                "user3": {
+                    "name": "User Three",
+                    "password": bcrypt.hashpw("password3".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
                 }
             }
         }
