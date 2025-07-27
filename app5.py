@@ -33,18 +33,34 @@ def load_credentials():
         # Use bcrypt for hashing
         credentials = {
             "usernames": {
-                "user1": {
-                    "name": "User One",
+                "taskeen": {
+                    "name": "Taskeen Raza",
                     "password": bcrypt.hashpw("password1".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
                 },
-                "user2": {
-                    "name": "User Two",
+                "fatima": {
+                    "name": "Fatima Qazi",
                     "password": bcrypt.hashpw("password2".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
                 },
-                "user3": {
-                    "name": "User Three",
+                "khadija": {
+                    "name": "Khadija",
                     "password": bcrypt.hashpw("password3".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-                }
+                },
+                "mohsin": {
+                    "name": "Mohsin Zahoor",
+                    "password": bcrypt.hashpw("password4".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+                },
+                "neelma": {
+                    "name": "Neelma Munir",
+                    "password": bcrypt.hashpw("password5".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+                },
+                "guest1": {
+                    "name": "UniverSync AI User",
+                    "password": bcrypt.hashpw("password6".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+                },
+                "guest2": {
+                    "name": "UniverSync AI User",
+                    "password": bcrypt.hashpw("password7".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+                },
             }
         }
         return credentials
@@ -216,7 +232,7 @@ def answer_question(vectorstore, query):
         return None
 
 def main():
-    st.title("AI-Powered Academic Companion: Supporting PEC-Driven OBE Processes at DEE-LCWU")
+    st.title("UniverSync AI: A Unified Academic Automation Platform for OBE, PEC Accreditation & Multi-Faculty University Transformation at LCWU")
 
     # Load credentials
     credentials = load_credentials()
@@ -245,7 +261,7 @@ def main():
                     st.session_state["username"] = username
                     st.success(f"Login successful! Welcome, {name}!")
                 else:
-                    st.error("Login failed: Incorrect username or password. Try user1:password1 or user2:password2 or user3:password3.")
+                    st.error("Login failed: Incorrect username or password. Try taskeen:password1 or fatima:password2 or khadija:password3 or mohsin:password4 or neelma:password5 or guest1:password6 or guest2:password7.")
 
     if st.session_state["authentication_status"]:
         st.write(f"Welcome, {st.session_state['name']}!")
@@ -294,7 +310,8 @@ def main():
             elif not query.strip():
                 st.warning("Please enter a question.")
     elif st.session_state["authentication_status"] is False:
-        st.error("Username/password is incorrect. Try user1:password1 or user2:password2 or user3:password3.")
+        st.error("Username/password is incorrect. Try taskeen:password1 or fatima:password2 or khadija:password3 or mohsin:password4 or neelma:password5 or guest1:password6 or guest2:password7.")
+)
     elif st.session_state["authentication_status"] is None:
         st.warning("Please enter your username and password.")
 
