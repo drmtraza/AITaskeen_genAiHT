@@ -1,5 +1,5 @@
+```python
 import streamlit as st
-import streamlit_authenticator as stauth
 import faiss
 import os
 import yaml
@@ -17,7 +17,7 @@ from langchain_community.docstore.in_memory import InMemoryDocstore
 from langchain_openai import ChatOpenAI
 import pickle
 import shutil
-import bcrypt  # Added for direct password hashing
+import bcrypt  # For password hashing
 
 # Load secrets with error handling
 try:
@@ -31,7 +31,7 @@ except KeyError as e:
 # Load authentication configuration
 def load_credentials():
     try:
-        # Use bcrypt directly for hashing
+        # Use bcrypt for hashing
         credentials = {
             "usernames": {
                 "user1": {
@@ -52,24 +52,7 @@ def load_credentials():
         st.error(f"Error generating credentials: {str(e)}")
         return None
 
-# Initialize authenticator
-try:
-    credentials = load_credentials()
-    if credentials is None:
-        st.error("Failed to load credentials.")
-        st.stop()
-    authenticator = stauth.Authenticate(
-        credentials=credentials,
-        cookie_name="rag_chatbot",
-        cookie_key="auth",
-        cookie_expiry_days=30
-    )
-    st.write("Debug: Authenticator initialized successfully.")
-except Exception as e:
-    st.error(f"Error initializing authenticator: {str(e)}")
-    st.stop()
-
-# Manual authentication fallback
+# Manual authentication
 def manual_authenticate(username, password, credentials):
     try:
         hashed_password = credentials.get("usernames", {}).get(username, {}).get("password", "")
@@ -80,7 +63,7 @@ def manual_authenticate(username, password, credentials):
             return credentials["usernames"][username]["name"], True, username
         return None, False, None
     except Exception as e:
-        st.error(f"Manual authentication error: {str(e)}")
+        st.error(f"Authentication error: {str(e)}")
         return None, False, None
 
 # Directory for user data
@@ -235,44 +218,24 @@ def answer_question(vectorstore, query):
 def main():
     st.title("AI-Powered Academic Companion: Supporting PEC-Driven OBE Processes at DEE-LCWU")
 
+    # Load credentials
+    credentials = load_credentials()
+    if credentials is None:
+        st.error("Failed to load credentials.")
+        st.stop()
+
     # Initialize session state
     if "authentication_status" not in st.session_state:
         st.session_state["authentication_status"] = None
         st.session_state["name"] = None
         st.session_state["username"] = None
 
-    # Try streamlit-authenticator login
-    try:
-        login_result = authenticator.login()
-        if login_result is None:
-            st.warning("Streamlit-authenticator login failed. Using manual authentication fallback.")
-            # Manual authentication form
-            with st.form("manual_login_form"):
-                st.write("Manual Login")
-                username = st.text_input("Username", value="user1")
-                password = st.text_input("Password", type="password", value="password1")
-                submit = st.form_submit_button("Login")
-                if submit:
-                    name, authentication_status, username = manual_authenticate(username, password, credentials)
-                    if authentication_status:
-                        st.session_state["name"] = name
-                        st.session_state["authentication_status"] = authentication_status
-                        st.session_state["username"] = username
-                        st.success(f"Manual login successful! Welcome, {name}!")
-                    else:
-                        st.error("Manual login failed: Incorrect username or password. Try user1:password1 or user2:password2.")
-        else:
-            name, authentication_status, username = login_result
-            st.session_state["name"] = name
-            st.session_state["authentication_status"] = authentication_status
-            st.session_state["username"] = username
-    except Exception as e:
-        st.error(f"Authentication error: {str(e)}. Falling back to manual authentication.")
-        # Manual authentication form
+    # Manual authentication form
+    if not st.session_state["authentication_status"]:
         with st.form("manual_login_form"):
-            st.write("Manual Login")
-            username = st.text_input("Username", value="user1")
-            password = st.text_input("Password", type="password", value="password1")
+            st.write("Login")
+            username = st.text_input("Username", value="")
+            password = st.text_input("Password", type="password", value="")
             submit = st.form_submit_button("Login")
             if submit:
                 name, authentication_status, username = manual_authenticate(username, password, credentials)
@@ -280,13 +243,18 @@ def main():
                     st.session_state["name"] = name
                     st.session_state["authentication_status"] = authentication_status
                     st.session_state["username"] = username
-                    st.success(f"Manual login successful! Welcome, {name}!")
+                    st.success(f"Login successful! Welcome, {name}!")
                 else:
-                    st.error("Manual login failed: Incorrect username or password. Try user1:password1 or user2:password2.")
+                    st.error("Login failed: Incorrect username or password. Try user1:password1 or user2:password2.")
 
     if st.session_state["authentication_status"]:
         st.write(f"Welcome, {st.session_state['name']}!")
-        authenticator.logout('Logout', 'sidebar')
+        # Simple logout button
+        if st.sidebar.button("Logout"):
+            st.session_state["authentication_status"] = None
+            st.session_state["name"] = None
+            st.session_state["username"] = None
+            st.success("Logged out successfully.")
 
         # Load user-specific vectorstore if it exists
         if "vectorstore" not in st.session_state:
@@ -332,3 +300,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+```
