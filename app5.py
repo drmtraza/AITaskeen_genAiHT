@@ -245,7 +245,7 @@ def main():
     # Display titles
     st.markdown(
         """
-        <h1 style='font-size: 40px; text-align: center; color: #006400;'>
+        <h1 style='font-size: 40px; text-align: center; color: #FFFFFF;'>
             UniverSync AI
         </h1>
         """,
