@@ -232,23 +232,32 @@ def answer_question(vectorstore, query):
         return None
 
 def main():
+    # Display logos in the sidebar
+    st.sidebar.image("assets/logo1.png", width=100)
+    st.sidebar.markdown("<div style='margin-bottom: 20px;'></div>", unsafe_allow_html=True)  # Spacing
+    st.sidebar.image("assets/logo2.png", width=100)
+    st.sidebar.markdown("<div style='margin-bottom: 20px;'></div>", unsafe_allow_html=True)  # Spacing
+    st.sidebar.image("assets/logo3.png", width=100)
+    st.sidebar.markdown("<div style='margin-bottom: 20px;'></div>", unsafe_allow_html=True)  # Spacing
+
+    # Display titles
     st.markdown(
-    """
-    <h1 style='font-size: 40px; text-align: center; color: #006400;'>
-        UniverSync AI
-    </h1>
-    """,
-    unsafe_allow_html=True
+        """
+        <h1 style='font-size: 40px; text-align: center; color: #006400;'>
+            UniverSync AI
+        </h1>
+        """,
+        unsafe_allow_html=True
     )
     st.markdown(
-    """
-    <h1 style='font-size: 30px; text-align: center; color: #0000FF;'>
-        A Unified Academic Automation Platform for OBE, PEC Accreditation & Multi-Faculty University Transformation at LCWU
-    </h1>
-    """,
-    unsafe_allow_html=True
+        """
+        <h1 style='font-size: 30px; text-align: center; color: #0000FF;'>
+            A Unified Academic Automation Platform for OBE, PEC Accreditation & Multi-Faculty University Transformation at LCWU
+        </h1>
+        """,
+        unsafe_allow_html=True
     )
-    
+
     # Load credentials
     credentials = load_credentials()
     if credentials is None:
