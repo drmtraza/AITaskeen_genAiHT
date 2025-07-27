@@ -311,7 +311,6 @@ def main():
                 st.warning("Please enter a question.")
     elif st.session_state["authentication_status"] is False:
         st.error("Username/password is incorrect. Try taskeen:password1 or fatima:password2 or khadija:password3 or mohsin:password4 or neelma:password5 or guest1:password6 or guest2:password7.")
-)
     elif st.session_state["authentication_status"] is None:
         st.warning("Please enter your username and password.")
 
