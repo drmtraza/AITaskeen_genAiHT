@@ -1,4 +1,3 @@
-```python
 import streamlit as st
 import faiss
 import os
