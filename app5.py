@@ -210,7 +210,7 @@ def main():
 
     # Authentication
     try:
-        name, authentication_status, username = authenticator.login(form_name="Login")
+        name, authentication_status, username = authenticator.login()
     except Exception as e:
         st.error(f"Authentication error: {str(e)}")
         st.stop()
