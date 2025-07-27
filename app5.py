@@ -232,6 +232,14 @@ def answer_question(vectorstore, query):
         return None
 
 def main():
+    st.markdown(
+    """
+    <h1 style='font-size: 24px; text-align: center;'>
+        UniverSync AI: A Unified Academic Automation Platform for OBE, PEC Accreditation & Multi-Faculty University Transformation at LCWU
+    </h1>
+    """,
+    unsafe_allow_html=True
+    )
     st.title("UniverSync AI: A Unified Academic Automation Platform for OBE, PEC Accreditation & Multi-Faculty University Transformation at LCWU")
 
     # Load credentials
