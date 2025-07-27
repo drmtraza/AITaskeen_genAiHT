@@ -245,7 +245,7 @@ def main():
                     st.session_state["username"] = username
                     st.success(f"Login successful! Welcome, {name}!")
                 else:
-                    st.error("Login failed: Incorrect username or password. Try user1:password1 or user2:password2.")
+                    st.error("Login failed: Incorrect username or password. Try user1:password1 or user2:password2 or user3:password3.")
 
     if st.session_state["authentication_status"]:
         st.write(f"Welcome, {st.session_state['name']}!")
