@@ -294,7 +294,7 @@ def main():
             elif not query.strip():
                 st.warning("Please enter a question.")
     elif st.session_state["authentication_status"] is False:
-        st.error("Username/password is incorrect. Try user1:password1 or user2:password2.")
+        st.error("Username/password is incorrect. Try user1:password1 or user2:password2 or user3:password3.")
     elif st.session_state["authentication_status"] is None:
         st.warning("Please enter your username and password.")
 
