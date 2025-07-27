@@ -239,6 +239,8 @@ def main():
     st.sidebar.markdown("<div style='margin-bottom: 20px;'></div>", unsafe_allow_html=True)  # Spacing
     st.sidebar.image("assets/logo3.png", width=100)
     st.sidebar.markdown("<div style='margin-bottom: 20px;'></div>", unsafe_allow_html=True)  # Spacing
+    st.sidebar.image("assets/logo4.png", width=100)
+    st.sidebar.markdown("<div style='margin-bottom: 20px;'></div>", unsafe_allow_html=True)  # Spacing
 
     # Display titles
     st.markdown(
