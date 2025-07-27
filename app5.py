@@ -43,9 +43,6 @@ def load_credentials():
                 }
             }
         }
-        # Debug: Display hashed passwords
-        st.write(f"Debug: Hashed password for user1: {credentials['usernames']['user1']['password']}")
-        st.write(f"Debug: Hashed password for user2: {credentials['usernames']['user2']['password']}")
         return credentials
     except Exception as e:
         st.error(f"Error generating credentials: {str(e)}")
