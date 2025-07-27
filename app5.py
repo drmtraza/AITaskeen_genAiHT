@@ -43,6 +43,9 @@ def load_credentials():
                 }
             }
         }
+        # Debug: Display hashed passwords
+        st.write(f"Debug: Hashed password for user1: {credentials['usernames']['user1']['password']}")
+        st.write(f"Debug: Hashed password for user2: {credentials['usernames']['user2']['password']}")
         return credentials
     except Exception as e:
         st.error(f"Error generating credentials: {str(e)}")
@@ -60,11 +63,25 @@ try:
         cookie_key="auth",
         cookie_expiry_days=30
     )
-    # Debug: Display credentials to verify structure
-    st.write("Debug: Credentials loaded successfully.")
+    st.write("Debug: Authenticator initialized successfully.")
 except Exception as e:
     st.error(f"Error initializing authenticator: {str(e)}")
     st.stop()
+
+# Manual authentication fallback
+def manual_authenticate(username, password, credentials):
+    try:
+        hasher = stauth.Hasher()
+        hashed_password = credentials.get("usernames", {}).get(username, {}).get("password", "")
+        if not hashed_password:
+            return None, False, None
+        # Verify password
+        if hasher.check(password, hashed_password):
+            return credentials["usernames"][username]["name"], True, username
+        return None, False, None
+    except Exception as e:
+        st.error(f"Manual authentication error: {str(e)}")
+        return None, False, None
 
 # Directory for user data
 USER_DATA_DIR = "user_data"
@@ -218,26 +235,54 @@ def answer_question(vectorstore, query):
 def main():
     st.title("AI-Powered Academic Companion: Supporting PEC-Driven OBE Processes at DEE-LCWU")
 
-    # Authentication
-    try:
-        if "authentication_status" not in st.session_state:
-            st.session_state["authentication_status"] = None
-            st.session_state["name"] = None
-            st.session_state["username"] = None
+    # Initialize session state
+    if "authentication_status" not in st.session_state:
+        st.session_state["authentication_status"] = None
+        st.session_state["name"] = None
+        st.session_state["username"] = None
 
-        # Render login form explicitly
+    # Try streamlit-authenticator login
+    try:
         login_result = authenticator.login()
         if login_result is None:
-            st.error("Authentication failed: Login form did not return valid data. Please check your credentials (e.g., user1:password1 or user2:password2) and try again.")
-            st.stop()
-
-        name, authentication_status, username = login_result
-        st.session_state["name"] = name
-        st.session_state["authentication_status"] = authentication_status
-        st.session_state["username"] = username
+            st.warning("Streamlit-authenticator login failed. Using manual authentication fallback.")
+            # Manual authentication form
+            with st.form("manual_login_form"):
+                st.write("Manual Login")
+                username = st.text_input("Username", value="user1")
+                password = st.text_input("Password", type="password", value="password1")
+                submit = st.form_submit_button("Login")
+                if submit:
+                    name, authentication_status, username = manual_authenticate(username, password, credentials)
+                    if authentication_status:
+                        st.session_state["name"] = name
+                        st.session_state["authentication_status"] = authentication_status
+                        st.session_state["username"] = username
+                        st.success(f"Manual login successful! Welcome, {name}!")
+                    else:
+                        st.error("Manual login failed: Incorrect username or password. Try user1:password1 or user2:password2.")
+        else:
+            name, authentication_status, username = login_result
+            st.session_state["name"] = name
+            st.session_state["authentication_status"] = authentication_status
+            st.session_state["username"] = username
     except Exception as e:
-        st.error(f"Authentication error: {str(e)}. Please ensure credentials are correct (e.g., user1:password1 or user2:password2).")
-        st.stop()
+        st.error(f"Authentication error: {str(e)}. Falling back to manual authentication.")
+        # Manual authentication form
+        with st.form("manual_login_form"):
+            st.write("Manual Login")
+            username = st.text_input("Username", value="user1")
+            password = st.text_input("Password", type="password", value="password1")
+            submit = st.form_submit_button("Login")
+            if submit:
+                name, authentication_status, username = manual_authenticate(username, password, credentials)
+                if authentication_status:
+                    st.session_state["name"] = name
+                    st.session_state["authentication_status"] = authentication_status
+                    st.session_state["username"] = username
+                    st.success(f"Manual login successful! Welcome, {name}!")
+                else:
+                    st.error("Manual login failed: Incorrect username or password. Try user1:password1 or user2:password2.")
 
     if st.session_state["authentication_status"]:
         st.write(f"Welcome, {st.session_state['name']}!")
