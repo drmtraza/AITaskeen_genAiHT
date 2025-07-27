@@ -279,6 +279,7 @@ def main():
             st.session_state["name"] = None
             st.session_state["username"] = None
             st.success("Logged out successfully.")
+            st.rerun()  # Force rerun to refresh the UI immediately
 
         # Load user-specific vectorstore if it exists
         if "vectorstore" not in st.session_state:
