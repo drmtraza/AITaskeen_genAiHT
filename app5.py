@@ -17,6 +17,7 @@ from langchain_community.docstore.in_memory import InMemoryDocstore
 from langchain_openai import ChatOpenAI
 import pickle
 import shutil
+import bcrypt  # Added for direct password hashing
 
 # Load secrets with error handling
 try:
@@ -30,16 +31,16 @@ except KeyError as e:
 # Load authentication configuration
 def load_credentials():
     try:
-        hasher = stauth.Hasher()
+        # Use bcrypt directly for hashing
         credentials = {
             "usernames": {
                 "user1": {
                     "name": "User One",
-                    "password": hasher.hash("password1")
+                    "password": bcrypt.hashpw("password1".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
                 },
                 "user2": {
                     "name": "User Two",
-                    "password": hasher.hash("password2")
+                    "password": bcrypt.hashpw("password2".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
                 }
             }
         }
@@ -71,12 +72,11 @@ except Exception as e:
 # Manual authentication fallback
 def manual_authenticate(username, password, credentials):
     try:
-        hasher = stauth.Hasher()
         hashed_password = credentials.get("usernames", {}).get(username, {}).get("password", "")
         if not hashed_password:
             return None, False, None
-        # Verify password
-        if hasher.check(password, hashed_password):
+        # Verify password using bcrypt
+        if bcrypt.checkpw(password.encode('utf-8'), hashed_password.encode('utf-8')):
             return credentials["usernames"][username]["name"], True, username
         return None, False, None
     except Exception as e:
