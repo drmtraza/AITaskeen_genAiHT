@@ -29,25 +29,33 @@ except KeyError as e:
 
 # Load authentication configuration
 def load_credentials():
-    hasher = stauth.Hasher()  # Initialize Hasher without arguments
-    credentials = {
-        "usernames": {
-            "user1": {
-                "name": "User One",
-                "password": hasher.hash("password1")  # Use hash method
-            },
-            "user2": {
-                "name": "User Two",
-                "password": hasher.hash("password2")  # Use hash method
+    try:
+        hasher = stauth.Hasher()  # Initialize Hasher without arguments
+        credentials = {
+            "usernames": {
+                "user1": {
+                    "name": "User One",
+                    "password": hasher.hash("password1")  # Use hash method
+                },
+                "user2": {
+                    "name": "User Two",
+                    "password": hasher.hash("password2")  # Use hash method
+                }
             }
         }
-    }
-    return credentials
+        return credentials
+    except Exception as e:
+        st.error(f"Error generating credentials: {str(e)}")
+        return None
 
 # Initialize authenticator
 try:
+    credentials = load_credentials()
+    if credentials is None:
+        st.error("Failed to load credentials.")
+        st.stop()
     authenticator = stauth.Authenticate(
-        credentials=load_credentials(),
+        credentials=credentials,
         cookie_name="rag_chatbot",
         cookie_key="auth",
         cookie_expiry_days=30
@@ -210,7 +218,11 @@ def main():
 
     # Authentication
     try:
-        name, authentication_status, username = authenticator.login()
+        login_result = authenticator.login()
+        if login_result is None:
+            st.error("Authentication failed: Login method returned None. Please check your credentials and try again.")
+            st.stop()
+        name, authentication_status, username = login_result
     except Exception as e:
         st.error(f"Authentication error: {str(e)}")
         st.stop()
